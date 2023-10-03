@@ -1,4 +1,4 @@
-module github.com/niknamess/otus-go/hw01_hello_otus
+module github.com/niknamess/hw-test/hw01_hello_otus
 
 go 1.21
 
