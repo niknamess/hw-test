@@ -25,7 +25,6 @@ func Unpack(str string) (result string, err error) {
 			slash = false
 			continue
 		}
-
 		if unicode.IsDigit(symbol) {
 			if i == 0 {
 				return "", ErrInvalidString
@@ -44,7 +43,6 @@ func Unpack(str string) (result string, err error) {
 			continue
 		}
 		buffer.WriteRune(symbol)
-
 	}
 	return buffer.String(), nil
 }
