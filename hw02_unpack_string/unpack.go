@@ -1,6 +1,7 @@
 package hw02unpackstring
 
 import (
+	"bytes"
 	"errors"
 	"strconv"
 	"unicode"
@@ -10,6 +11,8 @@ var ErrInvalidString = errors.New("invalid string")
 
 func Unpack(str string) (result string, err error) {
 	var slash bool
+	buffer := bytes.Buffer{}
+
 	for i, symbol := range str {
 		if symbol == '\\' && !slash {
 			slash = true
@@ -19,7 +22,7 @@ func Unpack(str string) (result string, err error) {
 			if unicode.IsLetter(symbol) {
 				return "", ErrInvalidString
 			}
-			result += string(symbol)
+			buffer.WriteRune(symbol)
 			slash = false
 			continue
 		}
@@ -33,15 +36,16 @@ func Unpack(str string) (result string, err error) {
 			}
 			val, _ := strconv.Atoi(string(symbol))
 			if val == 0 {
-				result = result[:len(result)-1]
+				buffer.Truncate(buffer.Len() - 1)
 				continue
 			}
 			for j := 0; j < val-1; j++ {
-				result += string([]rune(str)[i-1])
+				buffer.WriteRune([]rune(str)[i-1])
 			}
 			continue
 		}
-		result += string(symbol)
+		buffer.WriteRune(symbol)
+
 	}
-	return result, nil
+	return buffer.String(), nil
 }
