@@ -12,7 +12,6 @@ var ErrInvalidString = errors.New("invalid string")
 func Unpack(str string) (result string, err error) {
 	var slash bool
 	buffer := bytes.Buffer{}
-
 	for i, symbol := range str {
 		if symbol == '\\' && !slash {
 			slash = true
