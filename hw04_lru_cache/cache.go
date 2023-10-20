@@ -29,11 +29,11 @@ func (cache *lruCache) Set(key Key, value interface{}) bool {
 	}
 
 	if cache.capacity == cache.queue.Len() {
-		leastRecentlyUsedItem := cache.queue.Back()
-		displacedCachedItem, isCacheItem := leastRecentlyUsedItem.Value.(cacheItem)
-		if isCacheItem {
-			cache.queue.Remove(leastRecentlyUsedItem)
-			delete(cache.items, displacedCachedItem.key)
+		recentlyUsed := cache.queue.Back()
+		displacedCached, isCache := recentlyUsed.Value.(cacheItem)
+		if isCache {
+			cache.queue.Remove(leastRecentlyUsed)
+			delete(cache.items, displacedCached.key)
 		} else {
 			panic("lruCache error")
 		}
