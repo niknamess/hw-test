@@ -70,8 +70,6 @@ func TestCache(t *testing.T) {
 }
 
 func TestCacheMultithreading(t *testing.T) {
-	//t.Skip() // Remove me if task with asterisk completed.
-
 	c := NewCache(10)
 	wg := &sync.WaitGroup{}
 	wg.Add(2)
@@ -95,13 +93,10 @@ func TestCacheMultithreading(t *testing.T) {
 
 func initCache(t *testing.T) Cache {
 	t.Helper()
-
 	c := NewCache(3)
-
 	for i, key := range [...]Key{keyA, keyB, keyC} {
 		was := c.Set(key, i)
 		assert.False(t, was)
 	}
-
 	return c
 }
