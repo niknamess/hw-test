@@ -6,7 +6,15 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+)
+
+const (
+	keyA Key = "a"
+	keyB Key = "b"
+	keyC Key = "c"
+	keyD Key = "d"
 )
 
 func TestCache(t *testing.T) {
@@ -50,13 +58,18 @@ func TestCache(t *testing.T) {
 	})
 
 	t.Run("purge logic", func(t *testing.T) {
-		// Write me
+		c := initCache(t)
+
+		was := c.Set(keyD, 4)
+		assert.False(t, was)
+
+		a, ok := c.Get(keyA)
+		assert.False(t, ok)
+		assert.Nil(t, a)
 	})
 }
 
 func TestCacheMultithreading(t *testing.T) {
-	t.Skip() // Remove me if task with asterisk completed.
-
 	c := NewCache(10)
 	wg := &sync.WaitGroup{}
 	wg.Add(2)
@@ -76,4 +89,14 @@ func TestCacheMultithreading(t *testing.T) {
 	}()
 
 	wg.Wait()
+}
+
+func initCache(t *testing.T) Cache {
+	t.Helper()
+	c := NewCache(3)
+	for i, key := range [...]Key{keyA, keyB, keyC} {
+		was := c.Set(key, i)
+		assert.False(t, was)
+	}
+	return c
 }
