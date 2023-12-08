@@ -32,7 +32,7 @@ func (cache *lruCache) Set(key Key, value interface{}) bool {
 		recentlyUsed := cache.queue.Back()
 		displacedCached, isCache := recentlyUsed.Value.(cacheItem)
 		if isCache {
-			cache.queue.Remove(leastRecentlyUsed)
+			cache.queue.Remove(recentlyUsed)
 			delete(cache.items, displacedCached.key)
 		} else {
 			panic("lruCache error")
