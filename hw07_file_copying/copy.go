@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"io"
-	"io/ioutil"
 	"os"
 
 	"github.com/cheggaaa/pb/v3"
@@ -14,96 +13,48 @@ var (
 	ErrOffsetExceedsFileSize = errors.New("offset exceeds file size")
 )
 
-const tmpFilenamePattern = "temp.*"
-
-type copyParams struct {
-	offset int64
-	limit  int64
-}
-
 func Copy(fromPath, toPath string, offset, limit int64) error {
-	params, err := validate(fromPath, offset, limit)
+	var l int64
+
+	inFile, err := os.Open(fromPath)
+	if err != nil {
+		return err
+	}
+	defer inFile.Close()
+
+	inF, err := inFile.Stat()
+	if err != nil {
+		return ErrUnsupportedFile
+	}
+
+	if offset > inF.Size() {
+		return ErrOffsetExceedsFileSize
+	}
+
+	outFile, err := os.Create(toPath)
+	if err != nil {
+		return err
+	}
+	defer outFile.Close()
+
+	_, err = inFile.Seek(offset, io.SeekStart)
 	if err != nil {
 		return err
 	}
 
-	file, err := os.OpenFile(fromPath, os.O_RDONLY, 0o666)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	if offset > 0 {
-		_, err = file.Seek(params.offset, io.SeekStart)
-		if err != nil {
-			return err
-		}
+	if limit == 0 || limit > inF.Size() {
+		l = inF.Size()
+	} else {
+		l = limit
 	}
 
-	tmpFile, err := ioutil.TempFile("", tmpFilenamePattern)
-	if err != nil {
+	bar := pb.Full.Start64(l)
+	b := bar.NewProxyWriter(outFile)
+
+	if _, err := io.CopyN(b, inFile, l); err != nil && !errors.Is(err, io.EOF) {
 		return err
 	}
 
-	err = copyFile(file, tmpFile, params.limit)
-	if err != nil {
-		return err
-	}
-
-	err = os.Rename(tmpFile.Name(), toPath)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func validate(filePath string, offset int64, limit int64) (*copyParams, error) {
-	fileInfo, err := os.Stat(filePath)
-	if err != nil {
-		return nil, err
-	}
-
-	if !fileInfo.Mode().IsRegular() {
-		return nil, ErrUnsupportedFile
-	}
-
-	if fileInfo.Size() < offset {
-		return nil, ErrOffsetExceedsFileSize
-	}
-
-	if limit > (fileInfo.Size() - offset) {
-		limit = fileInfo.Size() - offset
-	}
-
-	return &copyParams{
-		offset: offset,
-		limit:  limit,
-	}, nil
-}
-
-func copyFile(src io.Reader, dst io.Writer, limit int64) error {
-	pBar := pb.Start64(limit)
-	defer pBar.Finish()
-
-	var total int64
-	for {
-		n, err := io.CopyN(dst, src, 1)
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				break
-			}
-
-			return err
-		}
-
-		pBar.Increment()
-
-		total += n
-		if total == limit {
-			break
-		}
-	}
-
+	bar.Finish()
 	return nil
 }

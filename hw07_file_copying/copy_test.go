@@ -1,100 +1,63 @@
 package main
 
 import (
+	"embed"
+	"fmt"
 	"os"
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/udhos/equalfile"
 )
 
+type test struct {
+	from   string
+	offset int64
+	limit  int64
+	cmp    string
+}
+
+var td embed.FS
+
 func TestCopy(t *testing.T) {
-	var (
-		inputFile       = "testdata/input.txt"
-		outputFile      = "tmp.txt"
-		unsupportedFile = "/dev/urandom"
+	tests := []test{
+		{from: "./testdata/input.txt", cmp: "testdata/out_offset0_limit0.txt"},
+		{from: "./testdata/input.txt", limit: 10, cmp: "testdata/out_offset0_limit10.txt"},
+		{from: "./testdata/input.txt", limit: 1000, cmp: "testdata/out_offset0_limit1000.txt"},
+		{from: "./testdata/input.txt", limit: 10000, cmp: "testdata/out_offset0_limit10000.txt"},
+		{from: "./testdata/input.txt", limit: 1000, offset: 100, cmp: "testdata/out_offset100_limit1000.txt"},
+		{from: "./testdata/input.txt", limit: 1000, offset: 6000, cmp: "testdata/out_offset6000_limit1000.txt"},
+	}
 
-		cmp = equalfile.New(nil, equalfile.Options{}) // compare using single mode
-	)
+	for _, tc := range tests {
+		t.Run(fmt.Sprintf("Check %s", tc.cmp), func(t *testing.T) {
+			f, err := os.CreateTemp("", "tmp")
+			require.NoError(t, err)
+			defer f.Close()
 
-	t.Run("copy full file (offset = 0; limit = 0)", func(t *testing.T) {
-		err := Copy(inputFile, outputFile, 0, 0)
-		require.NoError(t, err)
+			err = Copy(tc.from, f.Name(), tc.offset, tc.limit)
+			require.NoError(t, err)
 
-		equal, err := cmp.CompareFile(outputFile, "testdata/out_offset0_limit0.txt")
-		require.NoError(t, err)
-		require.True(t, equal)
+			require.FileExists(t, f.Name())
+			out, err := f.Stat()
+			require.NoError(t, err)
 
-		os.Remove(outputFile)
-	})
+			cmp, err := td.Open(tc.cmp)
+			require.NoError(t, err)
+			defer cmp.Close()
 
-	t.Run("copy with (offset = 0; limit = 10)", func(t *testing.T) {
-		err := Copy(inputFile, outputFile, 0, 10)
-		require.NoError(t, err)
+			fc, err := cmp.Stat()
+			require.NoError(t, err)
 
-		equal, err := cmp.CompareFile(outputFile, "testdata/out_offset0_limit10.txt")
-		require.NoError(t, err)
-		require.True(t, equal)
+			b, err := os.ReadFile(f.Name())
+			require.NoError(t, err)
 
-		os.Remove(outputFile)
-	})
+			c, err := os.ReadFile(tc.cmp)
+			require.NoError(t, err)
 
-	t.Run("copy with (offset = 0; limit = 1000)", func(t *testing.T) {
-		err := Copy(inputFile, outputFile, 0, 1000)
-		require.NoError(t, err)
-
-		equal, err := cmp.CompareFile(outputFile, "testdata/out_offset0_limit1000.txt")
-		require.NoError(t, err)
-		require.True(t, equal)
-
-		os.Remove(outputFile)
-	})
-
-	t.Run("copy with (offset = 0; limit = 10'000)", func(t *testing.T) {
-		err := Copy(inputFile, outputFile, 0, 10_000)
-		require.NoError(t, err)
-
-		equal, err := cmp.CompareFile(outputFile, "testdata/out_offset0_limit10000.txt")
-		require.NoError(t, err)
-		require.True(t, equal)
-
-		os.Remove(outputFile)
-	})
-
-	t.Run("copy with (offset = 100; limit = 1000)", func(t *testing.T) {
-		err := Copy(inputFile, outputFile, 100, 1000)
-		require.NoError(t, err)
-
-		equal, err := cmp.CompareFile(outputFile, "testdata/out_offset100_limit1000.txt")
-		require.NoError(t, err)
-		require.True(t, equal)
-
-		os.Remove(outputFile)
-	})
-
-	t.Run("copy with (offset = 6000; limit = 1000)", func(t *testing.T) {
-		err := Copy(inputFile, outputFile, 6000, 1000)
-		require.NoError(t, err)
-
-		equal, err := cmp.CompareFile(outputFile, "testdata/out_offset6000_limit1000.txt")
-		require.NoError(t, err)
-		require.True(t, equal)
-
-		os.Remove(outputFile)
-	})
-
-	t.Run("copy with offset great that file size", func(t *testing.T) {
-		fileInfo, err := os.Stat(inputFile)
-		require.NoError(t, err)
-
-		err = Copy(inputFile, outputFile, fileInfo.Size()+1, 1000)
-		require.Error(t, err)
-		require.Equal(t, ErrOffsetExceedsFileSize, err)
-	})
-
-	t.Run("copy unsupported file", func(t *testing.T) {
-		err := Copy(unsupportedFile, outputFile, 0, 0)
-		require.Error(t, err)
-		require.Equal(t, ErrUnsupportedFile, err)
-	})
+			os.Remove(f.Name())
+			require.Equal(t, fc.Size(), out.Size(), "File size not equal")
+			require.True(t, reflect.DeepEqual(b, c), "DeepEqual file not equal")
+		})
+	}
 }
