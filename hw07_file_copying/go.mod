@@ -5,7 +5,6 @@ go 1.21
 require (
 	github.com/cheggaaa/pb/v3 v3.1.4
 	github.com/stretchr/testify v1.8.4
-	github.com/udhos/equalfile v0.3.0
 )
 
 require (
