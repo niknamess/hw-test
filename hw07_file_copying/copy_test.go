@@ -17,6 +17,7 @@ type test struct {
 	cmp    string
 }
 
+//go:embed testdata/*
 var td embed.FS
 
 func TestCopy(t *testing.T) {
@@ -30,7 +31,7 @@ func TestCopy(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		t.Run(fmt.Sprintf("Check %s", tc.cmp), func(t *testing.T) {
+		t.Run(fmt.Sprintf("check %s", tc.cmp), func(t *testing.T) {
 			f, err := os.CreateTemp("", "tmp")
 			require.NoError(t, err)
 			defer f.Close()
