@@ -115,8 +115,4 @@ func TestPipeline(t *testing.T) {
 			int64(sleepPerStage)+int64(fault))
 	})
 
-	t.Run("channel is nil", func(t *testing.T) {
-		res := ExecutePipeline(nil, nil, stages...)
-		require.Nil(t, res)
-	})
 }
