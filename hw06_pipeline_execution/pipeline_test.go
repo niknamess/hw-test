@@ -114,5 +114,4 @@ func TestPipeline(t *testing.T) {
 			int64(elapsed),
 			int64(sleepPerStage)+int64(fault))
 	})
-
 }
