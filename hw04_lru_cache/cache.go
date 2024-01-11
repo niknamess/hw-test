@@ -10,67 +10,16 @@ type Cache interface {
 	Clear()
 }
 
+type cacheItem struct {
+	key   Key
+	value interface{}
+}
+
 type lruCache struct {
 	capacity int
 	queue    List
 	items    map[Key]*ListItem
-	rwMutex  sync.RWMutex
-}
-
-func (cache *lruCache) Set(key Key, value interface{}) bool {
-	cache.rwMutex.Lock()
-	defer cache.rwMutex.Unlock()
-
-	if val, ok := cache.items[key]; ok {
-		cache.queue.MoveToFront(val)
-		cache.queue.Front().Value = cacheItem{key, value}
-		cache.items[key] = cache.queue.Front()
-		return ok
-	}
-
-	if cache.capacity == cache.queue.Len() {
-		recentlyUsed := cache.queue.Back()
-		displacedCached, isCache := recentlyUsed.Value.(cacheItem)
-		if isCache {
-			cache.queue.Remove(recentlyUsed)
-			delete(cache.items, displacedCached.key)
-		} else {
-			panic("lruCache error")
-		}
-	}
-	item := cacheItem{key, value}
-	cache.items[key] = cache.queue.PushFront(item)
-	return false
-}
-
-func (cache *lruCache) Get(key Key) (interface{}, bool) {
-	cache.rwMutex.RLock()
-	defer cache.rwMutex.RUnlock()
-
-	if val, ok := cache.items[key]; ok {
-		cache.queue.MoveToFront(val)
-		val, ok := val.Value.(cacheItem)
-		if ok {
-			return val.value, true
-		}
-		panic("lruCache error")
-	} else {
-		return nil, false
-	}
-}
-
-func (cache *lruCache) Clear() {
-	cache.rwMutex.Lock()
-	defer cache.rwMutex.Unlock()
-	cache.items = make(map[Key]*ListItem, cache.capacity)
-	for cache.queue.Front() != nil {
-		cache.queue.Remove(cache.queue.Front())
-	}
-}
-
-type cacheItem struct {
-	key   Key
-	value interface{}
+	mutex    *sync.Mutex
 }
 
 func NewCache(capacity int) Cache {
@@ -78,5 +27,56 @@ func NewCache(capacity int) Cache {
 		capacity: capacity,
 		queue:    NewList(),
 		items:    make(map[Key]*ListItem, capacity),
+		mutex:    &sync.Mutex{},
 	}
+}
+
+func (l *lruCache) Set(key Key, value interface{}) bool {
+	item := &cacheItem{
+		key:   key,
+		value: value,
+	}
+
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+
+	if listEl, found := l.items[key]; found {
+		listEl.Value = item
+		l.queue.MoveToFront(listEl)
+		l.items[key] = l.queue.Front()
+
+		return true
+	}
+
+	if l.capacity == l.queue.Len() {
+		back := l.queue.Back()
+		delete(l.items, back.Value.(*cacheItem).key)
+		l.queue.Remove(back)
+	}
+
+	l.items[key] = l.queue.PushFront(item)
+	return false
+}
+
+func (l *lruCache) Get(key Key) (interface{}, bool) {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+
+	item := l.items[key]
+	if item == nil {
+		return nil, false
+	}
+
+	l.queue.MoveToFront(item)
+	l.items[key] = l.queue.Front()
+
+	return item.Value.(*cacheItem).value, true
+}
+
+func (l *lruCache) Clear() {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+
+	l.queue = NewList()
+	l.items = make(map[Key]*ListItem, l.capacity)
 }
