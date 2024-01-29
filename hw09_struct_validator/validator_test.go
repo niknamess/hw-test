@@ -116,7 +116,7 @@ func TestValidate(t *testing.T) {
 			name: "all positive",
 			in: User{
 				Age:    40,
-				ID:     "LEMZ",
+				ID:     "LEMZzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz",
 				Role:   "admin",
 				Email:  "test1@gmail.com",
 				Phones: []string{"79999999999", "79999999999"},
@@ -136,7 +136,7 @@ func TestValidate(t *testing.T) {
 			in: App{
 				Version: "0.0.1",
 				User: User{
-					Age:   17,
+					Age:   15,
 					ID:    "LEMZ",
 					Role:  "admin",
 					Email: "test2@gmail.com",
