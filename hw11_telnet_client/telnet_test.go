@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"io"
-	"io/ioutil"
 	"net"
 	"sync"
 	"testing"
@@ -30,7 +29,7 @@ func TestTelnetClient(t *testing.T) {
 			timeout, err := time.ParseDuration("10s")
 			require.NoError(t, err)
 
-			client := NewTelnetClient(l.Addr().String(), timeout, ioutil.NopCloser(in), out)
+			client := NewTelnetClient(l.Addr().String(), timeout, io.NopCloser(in), out)
 			require.NoError(t, client.Connect())
 			defer func() { require.NoError(t, client.Close()) }()
 
@@ -75,7 +74,7 @@ func TestClientEof(t *testing.T) {
 
 	go func() {
 		defer wg.Done()
-		in := ioutil.NopCloser(&bytes.Buffer{})
+		in := io.NopCloser(&bytes.Buffer{})
 		out := &bytes.Buffer{}
 		timeout := time.Second * 5
 		client := NewTelnetClient(l.Addr().String(), timeout, in, out)
@@ -115,7 +114,7 @@ func TestServerEof(t *testing.T) {
 
 	go func() {
 		defer wg.Done()
-		in := ioutil.NopCloser(&bytes.Buffer{})
+		in := io.NopCloser(&bytes.Buffer{})
 		out := &bytes.Buffer{}
 		timeout := time.Second * 5
 		client := NewTelnetClient(l.Addr().String(), timeout, in, out)
