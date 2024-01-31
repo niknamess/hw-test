@@ -1,0 +1,16 @@
+=== RUN   TestGetDomainStat_Time_And_Memory
+    stats_optimization_test.go:46: time used: 168.2607ms / 300ms
+    stats_optimization_test.go:47: memory used: 2Mb / 30Mb
+--- PASS: TestGetDomainStat_Time_And_Memory (2.02s)
+PASS
+ok      github.com/niknamess/hw-test/hw10_program_optimization  2.201s
+
+=== RUN   TestGetDomainStat_Time_And_Memory
+    stats_optimization_test.go:46: time used: 668.5452ms / 300ms
+    stats_optimization_test.go:47: memory used: 308Mb / 30Mb
+    assertion_compare.go:332:
+                Error Trace:    stats_optimization_test.go:49
+                Error:          "668545200" is not less than "300000000"
+                Test:           TestGetDomainStat_Time_And_Memory
+                Messages:       [the program is too slow]
+--- FAIL: TestGetDomainStat_Time_And_Memory (25.57s)
